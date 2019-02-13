@@ -32,7 +32,7 @@ exports.postThread = function (req, res) {
       );
     })
     .then( result => {
-      res.redirect(`/b/${boardName}`);
+      res.redirect(`/b/${boardName}/`);
     })
     .catch(err => {
       console.dir(err);
@@ -152,3 +152,28 @@ exports.deleteReply = function(req, res) {
     });
 }
 
+exports.deleteThread = function(req, res) {
+  const boardName = req.params.board;
+  const { thread_id, delete_password } = req.body;
+
+  MongoCLient.connect(CONNECTION_STRING)
+    .then( database => {
+      return database.db(DB_NAME).collection(COLLECTION);
+    })
+    .then ( boardsCollection => {
+      return boardsCollection.findOneAndUpdate( 
+        { name: boardName, threads: { $elemMatch: { _id: new ObjectID(thread_id), delete_password: delete_password }} },
+        { $pull: { threads: { _id: new ObjectID(thread_id) } }});
+    })
+    .then ( result => {
+      if(result.value) {
+        res.status(200).send('success');
+      } else {
+        res.status(200).send('incorrect password');
+      }
+    })
+    .catch( err => {
+      console.fir(err);
+      res.status(500).send('database error');
+    });
+}
